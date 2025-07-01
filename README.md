@@ -1,7 +1,7 @@
 
 # Python CI/CD Project with Jenkins, Docker, Security Scanning, and ArgoCD
 
-### Here's a complete Python CI/CD Project setup. This demonstrates a profesiona pipeline using Jenkins, Security scanning, and ArgoCD for Kubernetes Deployment
+### Here's a complete Python CI/CD Project setup. This demonstrates a profesional pipeline using Jenkins, Security scanning, and ArgoCD for Kubernetes Deployment
 
 ### Project Overview.
 1. Python Flask application.
