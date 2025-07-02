@@ -3,7 +3,7 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_IMAGE = "your-dockerhub-username/CI-CD-Pipeline:${env.BUILD_NUMBER}"
+        DOCKER_IMAGE = "lordemmag/CI-CD-Pipeline:${env.BUILD_NUMBER}"
         KUBE_NAMESPACE = "Python-CI-CD"
     }
     
@@ -16,7 +16,7 @@ pipeline {
         
         stage('Set up Python') {
             steps {
-                sh 'python -m pip install --upgrade pip'
+                sh 'python3 -m pip install --upgrade pip'
                 sh 'pip install -r requirements.txt'
             }
         }
