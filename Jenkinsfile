@@ -44,19 +44,25 @@ pipeline {
             }
         }
         
-        stage('Security Scan') {
-            steps {
-                // Simulating AppScan with OWASP ZAP
-                sh 'echo "Running security scan (simulating AppScan with ZAP)..."'
-                sh 'docker run -v $(pwd):/zap/wrk/:rw -t owasp/zap2docker-stable zap-baseline.py \
-                    -t http://target-app:5000 -g gen.conf -r zap-report.html || true'
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'zap-report.html', fingerprint: true
-                }
-            }
-        }
+        
+	stage('Security Scan') {
+   	    steps {
+       		 sh 'echo "Running security scan (simulating AppScan with ZAP)..."'
+        	sh '''
+            		docker run --rm -v $(pwd):/zap/wrk/:rw -t owasp/zap2docker-stable zap-baseline.py \
+                	-t http://target-app:5000 \
+               		 -g /zap/wrk/gen.conf \
+               		 -r /zap/wrk/zap-report.html || true
+        	   '''
+    		}
+    		post {
+       		 always {
+            		sh 'ls -l' // Optional: Verify file is there
+            		archiveArtifacts artifacts: 'zap-report.html', fingerprint: true
+       			 }
+  		  }
+	}
+        
         
         stage('Build Docker Image') {
             steps {
