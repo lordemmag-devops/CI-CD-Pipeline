@@ -1,15 +1,33 @@
+# Python CI/CD Demo  Project
 
-# Python CI/CD Project with Jenkins, Docker, Security Scanning, and ArgoCD
+This project demonstrates a complete CI/CD pipeline for a Python Flask application
 
-### Here's a complete Python CI/CD Project setup. This demonstrates a profesional pipeline using Jenkins, Security scanning, and ArgoCD for Kubernetes Deployment
+## Features
 
-### Project Overview.
-1. Python Flask application.
-2. Source Control: GitHub
-3. CI Orchestrator: Jenkins
-4. Testing: pytest
-5. Code Quality: pylint, bandit (security)
-6. Security Testing: OWASP ZAP (simulating AppScan)
-7. Containerization: Docker
-8. CD Orchestrator: ArgoCD
-9. Target Environment: Kubernetes
+- Automated testing with pytest
+- Code quality analysis with pylint
+- Security scanning with bandit and OWASP ZAP (simulating AppScan)
+- CI pipeline with Jenkins
+- CD pipeline with ArgoCD deploying to Kubernetes
+- Docker containerization
+
+## Pipeline Overview
+
+1. **On code commit:**
+   - Checkout code
+   - Set up Python environment
+   - Run unit tests
+   - Perform code quality analysis
+   - Run security scans
+   - Build Docker image
+   - Push to Docker registry
+   - Trigger ArgoCD sync
+
+## Local Development
+
+1. Clone the repository
+2. Set up virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
