@@ -53,7 +53,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'reports/zap-report.html', fingerprint: true
+                    archiveArtifacts artifacts: 'zap-report.html', fingerprint: true
                 }
             }
         }
