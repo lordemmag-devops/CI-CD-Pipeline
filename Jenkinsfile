@@ -50,20 +50,19 @@ stage('Security Scan') {
     steps {
         sh 'echo "Running security scan (simulating AppScan with ZAP)..."'
         sh '''
-            docker run --rm -v $(pwd):/zap/wrk/:rw -t owasp/zap2docker-stable zap-baseline.py \
+            docker run --rm -u $(id -u):$(id -g) -v $(pwd):/zap/wrk/:rw -t owasp/zap2docker-stable zap-baseline.py \
                 -t http://target-app:5000 \
                 -g /zap/wrk/gen.conf \
-                -r /zap/wrk/zap-report.html || true
+                -r /zap/wrk/zap-report.html
         '''
     }
     post {
         always {
-            sh 'ls -l' // Optional: Verify file is there
-            archiveArtifacts artifacts: 'zap-report.html', fingerprint: true
+            sh 'ls -l' // Verify file presence
+            archiveArtifacts artifacts: 'zap-report.html', fingerprint: true, allowEmptyArchive: true
         }
     }
-}
-        
+}        
         
         stage('Build Docker Image') {
             steps {
