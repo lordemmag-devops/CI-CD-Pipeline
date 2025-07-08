@@ -6,7 +6,7 @@ This project demonstrates a complete CI/CD pipeline for a Python Flask applicati
 
 - Automated testing with pytest
 - Code quality analysis with pylint
-- Security scanning with bandit and OWASP ZAP (simulating AppScan)
+- Security scanning with bandit and ghcr.io zaproxy 
 - CI pipeline with Jenkins
 - CD pipeline with ArgoCD deploying to Kubernetes
 - Docker containerization
