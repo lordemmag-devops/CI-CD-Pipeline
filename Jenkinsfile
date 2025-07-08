@@ -49,11 +49,11 @@ pipeline {
 stage('Security Scan') {
     steps {
         sh 'echo "Running security scan..."'
-        sh 'docker --version' // Check if Docker works
-        sh 'ls -l' // Check workspace files
-        sh 'curl -I http://target-app:5000 || echo "Target not reachable"' // Check target
+        sh 'docker --version' // Verify Docker is available
+        sh 'ls -l' // Check for gen.conf
+        sh 'curl -I http://target-app:5000 || echo "Target not reachable"' // Check target app
         sh '''
-            docker run --rm -v $(pwd):/zap/wrk/:rw -t owasp/zap2docker-stable zap-baseline.py \
+            docker run --rm -u $(id -u):$(id -g) -v $(pwd):/zap/wrk/:rw -t owasp/zap2docker-stable zap-baseline.py \
                 -t http://target-app:5000 \
                 -g /zap/wrk/gen.conf \
                 -r /zap/wrk/zap-report.html
@@ -61,11 +61,12 @@ stage('Security Scan') {
     }
     post {
         always {
-            sh 'ls -l' // Check if zap-report.html was created
+            sh 'ls -l' // Check if zap-report.html exists
             archiveArtifacts artifacts: 'zap-report.html', fingerprint: true, allowEmptyArchive: true
         }
     }
-}        
+}       
+
         stage('Build Docker Image') {
             steps {
                 script {
