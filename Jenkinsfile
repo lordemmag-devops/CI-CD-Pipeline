@@ -72,11 +72,14 @@ stage('Security Scan') {
 
 
        
-stage('Build Docker Image') {
-    steps {
-        sh 'docker build -t my-image-name .'
-    }
-}
+
+     stage('Build Docker Image') {
+            steps {
+                script {
+                    def app = docker.build("my-image-name")
+                }
+            }
+        }
         
         stage('Push Docker Image') {
             steps {
