@@ -71,13 +71,12 @@ stage('Security Scan') {
     
 
 
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    docker.build(DOCKER_IMAGE)
-                }
-            }
-        }
+       
+stage('Build Docker Image') {
+    steps {
+        sh 'docker build -t my-image-name .'
+    }
+}
         
         stage('Push Docker Image') {
             steps {
