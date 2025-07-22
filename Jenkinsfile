@@ -48,13 +48,12 @@ pipeline {
 stage('Security Scan') {
     steps {
         sh 'echo "Running security scan..."'
-        sh '/usr/local/bin/docker --version || echo "Docker not found"' // Check Docker
-        sh '/usr/local/bin/docker pull ghcr.io/zaproxy/zap-baseline:latest || echo "Failed to pull image"' // Pull correct image
-        sh 'ls -l' // List files
+        sh 'docker --version || echo "Docker not found"' // Check Docker
+        sh 'docker pull ghcr.io/zaproxy/zap-baseline:latest || echo "Failed to pull image"' // Pull correct image
         sh 'curl -I http://target-app:5000 || echo "Target not reachable"' // Check target
 
         sh '''
-            /usr/local/bin/docker run --rm \
+            docker run --rm \
                 -v $(pwd):/zap/wrk/:rw \
                 ghcr.io/zaproxy/zap-baseline:latest \
                 -t http://target-app:5000 \
@@ -64,7 +63,7 @@ stage('Security Scan') {
     }
     post {
         always {
-            sh 'ls -l'
+            sh 'ls -l' // Check if report was created
             archiveArtifacts artifacts: 'zap-report.html', fingerprint: true, allowEmptyArchive: true
         }
     }
