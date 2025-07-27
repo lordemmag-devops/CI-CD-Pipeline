@@ -77,7 +77,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'export PATH=$PATH:/usr/local/bin && docker build -t lordemmag/ci-cd-pipeline:latest .'
+                sh 'export PATH=$PATH:/usr/local/bin && docker build -t lordemmag/CI-CD-Pipeline:latest .'
             }
         }
         
