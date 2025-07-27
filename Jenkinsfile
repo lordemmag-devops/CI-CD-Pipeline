@@ -68,6 +68,13 @@ pipeline {
             }
         }
 
+
+	stage('Check PATH') {
+	    steps {
+		sh 'echo $PATH'
+		}
+	   }
+
         stage('Build Docker Image') {
             steps {
                 script {
