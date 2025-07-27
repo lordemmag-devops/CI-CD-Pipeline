@@ -89,6 +89,7 @@ pipeline {
                     }
                 }
             }
+        }
    
         stage('Trigger ArgoCD Sync') {
             steps {
