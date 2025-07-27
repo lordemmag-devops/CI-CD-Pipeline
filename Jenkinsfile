@@ -4,7 +4,7 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_IMAGE = "lordemmag/CI-CD-Pipeline:${env.BUILD_NUMBER}"
+        DOCKER_IMAGE = "lordemmag/CI-CD-Pipeline:latest"
         KUBE_NAMESPACE = "Python-CI-CD"
     }
     
@@ -69,16 +69,23 @@ pipeline {
         }
 
         stage('Build and Push Docker Image') {
-            steps {
-                script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-                        def app = docker.build("${DOCKER_IMAGE}")
-                        app.push()
-                    }
+    steps {
+        script {
+            try {
+                docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+                    echo "Building Docker image: ${DOCKER_IMAGE}"
+                    def app = docker.build("${DOCKER_IMAGE}")
+                    echo "Pushing Docker image: ${DOCKER_IMAGE}"
+                    app.push()
+                    echo "Successfully pushed Docker image"
                 }
+            } catch (Exception e) {
+                echo "Error during Build and Push stage: ${e.getMessage()}"
+                error "Failed to build or push Docker image: ${e}"
             }
         }
-        
+    }
+}       
         stage('Trigger ArgoCD Sync') {
             steps {
                 sh """
