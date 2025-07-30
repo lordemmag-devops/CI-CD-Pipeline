@@ -76,11 +76,11 @@ pipeline {
 	   }
 
         stage('Build Docker Image') {
-            steps {
-                sh 'export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"'
-            }
-        }
-        
+    steps {
+        sh 'export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"'
+        sh 'docker build -t ${DOCKER_IMAGE} .'
+    }
+}        
        stage('Push Docker Image') {
             steps {
                 script {
