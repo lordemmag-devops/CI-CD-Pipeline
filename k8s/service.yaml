@@ -1,12 +1,11 @@
-
 apiVersion: v1
 kind: Service
 metadata:
-  name: CI-CD-Pipeline
-  namespace: python-demo
+  name: ci-cd-pipeline
+  namespace: python-ci-cd
 spec:
   selector:
-    app: CI-CD-Pipeline
+    app: ci-cd-pipeline
   ports:
     - protocol: TCP
       port: 80

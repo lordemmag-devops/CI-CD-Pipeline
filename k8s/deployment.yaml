@@ -2,13 +2,13 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: CI-CD-Pipeline
-  namespace: pyton-CI-CD
+  name: ci-cd-pipeline
+  namespace: python-ci-cd
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: CI-CD-Pipeline
+      app: ci-cd-pipeline
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -16,15 +16,15 @@ spec:
   template:
     metadata:
       labels:
-        app: CI-CD-Pipeline
+        app: ci-cd-pipeline
     spec:
       containers:
       - name: app
-        image: lordemmag/CI-CD-Pipeline:latest
+        image: lordemmag/ci-cd-pipeline:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
-          readinessProbe:
+        readinessProbe:
           httpGet:
             path: /health
             port: 5000

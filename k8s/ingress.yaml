@@ -1,20 +1,19 @@
-
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: CI-CD-Pipeline
-  namespace: python-CI-CD
+  name: ci-cd-pipeline
+  namespace: python-ci-cd
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
-  - host: python-CI-CD.lordemmag.com
+  - host: python-ci-cd.lordemmag.com
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: CI-CD-Pipeline
+            name: ci-cd-pipeline
             port:
               number: 80

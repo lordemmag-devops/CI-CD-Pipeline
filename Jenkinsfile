@@ -8,7 +8,7 @@ pipeline {
     
     environment {
         DOCKER_IMAGE = "lordemmag/ci-cd-pipeline:latest"
-        KUBE_NAMESPACE = "Python-CI-CD"
+        KUBE_NAMESPACE = "python-ci-cd"
     }
     
     stages {
