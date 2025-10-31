@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_IMAGE = "lordemmag/CI-CD-Pipeline:latest"
+        DOCKER_IMAGE = "lordemmag/ci-cd-pipeline:latest"
         KUBE_NAMESPACE = "Python-CI-CD"
     }
     
