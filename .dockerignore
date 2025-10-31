@@ -1,4 +1,3 @@
-
 venv
 *.pyc
 *.pyo
@@ -6,8 +5,5 @@ venv
 __pycache__
 .pytest_cache
 *.log
-*.txt
 *.html
-
-requirements.txt
-
+!requirements.txt
