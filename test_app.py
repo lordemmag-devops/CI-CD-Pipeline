@@ -17,4 +17,6 @@ def test_home(client):
 def test_health(client):
     response = client.get('/health')
     assert response.status_code == 200
-    assert response.json == {"status": "healthy"}
+    assert response.json["status"] == "healthy"
+    assert "timestamp" in response.json
+    assert "service" in response.json
