@@ -3,7 +3,7 @@
 FROM python:3.9-slim AS builder
 
 WORKDIR /app
-COPY requirements.txt 
+COPY requirements.txt .
 RUN pip install --user -r requirements.txt
 
 # Runtime stage
