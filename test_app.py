@@ -1,3 +1,5 @@
+"""Test module for Flask CI/CD application."""
+"""Tests for Flask CI/CD application."""
 import pytest
 from app import app
 
