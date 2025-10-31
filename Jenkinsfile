@@ -1,6 +1,11 @@
 pipeline {
     agent any
     
+    triggers {
+        githubPush()
+        pollSCM('H/5 * * * *')
+    }
+    
     environment {
         DOCKER_IMAGE = "lordemmag/ci-cd-pipeline:latest"
         KUBE_NAMESPACE = "Python-CI-CD"
