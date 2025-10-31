@@ -1,4 +1,3 @@
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,7 +18,7 @@ spec:
         app: ci-cd-pipeline
     spec:
       containers:
-      - name: app
+      - name: ci-cd-pipeline-app
         image: lordemmag/ci-cd-pipeline:latest
         imagePullPolicy: Always
         ports:
@@ -30,9 +29,13 @@ spec:
             port: 5000
           initialDelaySeconds: 5
           periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
         livenessProbe:
           httpGet:
             path: /health
             port: 5000
           initialDelaySeconds: 10
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
