@@ -31,11 +31,20 @@ pipeline {
                 sh 'python3 -m pytest --junitxml=test-results.xml'
                 sh 'pylint --exit-zero app.py test_app.py > pylint-report.txt || true'
                 sh 'bandit -r . -f txt -o bandit-report.txt || true'
+                sh 'echo "Running security scan..."'
+                sh '''
+                    docker run --rm \
+                        -v $(pwd):/zap/wrk/:rw \
+                        ghcr.io/zaproxy/zap-baseline:latest \
+                        -t http://target-app:5000 \
+                        -g /zap/wrk/gen.conf \
+                        -r /zap/wrk/zap-report.html || true
+                '''
             }
             post {
                 always {
                     junit 'test-results.xml'
-                    archiveArtifacts artifacts: '*-report.txt', fingerprint: true
+                    archiveArtifacts artifacts: '*-report.txt,zap-report.html', fingerprint: true, allowEmptyArchive: true
                 }
             }
         }
