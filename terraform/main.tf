@@ -70,6 +70,8 @@ resource "google_container_cluster" "main" {
     google_project_service.container,
     google_project_service.artifactregistry
   ]
+
+  
 }
 
 # Service Account for CI/CD (Autopilot manages node service accounts)

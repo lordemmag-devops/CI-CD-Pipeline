@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: python-app
-        image: us-central1-docker.pkg.dev/PROJECT_ID/cicd-app/python-app:latest
+        image: us-central1-docker.pkg.dev/ci-cd-pipeline-477813/cicd-app/python-app:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 5000

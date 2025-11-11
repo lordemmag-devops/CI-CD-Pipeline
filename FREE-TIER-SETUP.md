@@ -64,10 +64,11 @@ terraform output -raw cicd_service_account_key | base64 -d > gcp-key.json
 ### 4. Deploy Application
 ```bash
 # Get cluster credentials
-gcloud container clusters get-credentials cicd-cluster --zone=us-central1-a
+gcloud container clusters get-credentials cicd-cluster --region=us-central1
 
 # Update deployment with your project ID
 sed -i 's/PROJECT_ID/your-demo-project-id/g' k8s/deployment.yaml
+grep "image:" k8s/deployment.yaml
 
 # Deploy (minimal resources)
 kubectl create namespace python-ci-cd
@@ -81,8 +82,21 @@ kubectl apply -f k8s/
 # Monitor cluster resources
 kubectl top nodes
 kubectl top pods -n python-ci-cd
+kubectl describe pod -n python-ci-cd <pod-name>
+```
+### Configure Docker to authenticate with google Artifact Registry:
+```bash
+gcloud auth configure-docker us-central1-docker.pkg.dev 
+```
+### Build Docker Image
+
+```bash
+docker built -t us-central1-docker.pkg.dev/your-demo-project-id/cicd-app/python-app:latest .
+docker push us-central1-docker.pkg.dev/your-demo-project-id/cicd-app/python-app:latest
+```
 
 # Check GCP quotas
+```bash
 gcloud compute project-info describe --format="table(quotas.metric,quotas.usage,quotas.limit)"
 ```
 
