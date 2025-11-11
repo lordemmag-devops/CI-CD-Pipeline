@@ -7,8 +7,13 @@ pipeline {
     }
     
     environment {
-        DOCKER_IMAGE = "lordemmag/ci-cd-pipeline:latest"
-        KUBE_NAMESPACE = "python-ci-cd"
+        GCP_PROJECT_ID = credentials('gcp-project-id')
+        GCP_REGION = 'us-central1'
+        GCP_ZONE = 'us-central1-a'
+        ARTIFACT_REGISTRY = "${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/cicd-app"
+        DOCKER_IMAGE = "${ARTIFACT_REGISTRY}/python-app:${BUILD_NUMBER}"
+        GKE_CLUSTER = 'cicd-cluster'
+        KUBE_NAMESPACE = 'python-ci-cd'
     }
     
     stages {
@@ -25,12 +30,7 @@ pipeline {
                 
                 stage('Build Docker Image') {
                     steps {
-                        sh '''
-                            export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
-                            docker --version
-                            docker info --format "{{.ServerVersion}}"
-                            docker build -t ${DOCKER_IMAGE} .
-                        '''
+                        sh 'docker build -t ${DOCKER_IMAGE} .'
                     }
                 }
             }
@@ -65,9 +65,6 @@ pipeline {
                 stage('Security Scan') {
                     steps {
                         sh 'echo "Running security scan..."'
-                        sh 'docker --version || echo "Docker not found"'
-                        sh 'docker pull ghcr.io/zaproxy/zap-baseline:latest || echo "Failed to pull image"'
-                        sh 'curl -I http://target-app:5000 || echo "Target not reachable"'
                         sh '''
                             docker run --rm \
                                 -v $(pwd):/zap/wrk/:rw \
@@ -89,42 +86,30 @@ pipeline {
         // ========== DEPLOY SECTION ==========
         stage('Deploy') {
             stages {
-                stage('Push Docker Image') {
+                stage('Authenticate GCP') {
                     steps {
-                        script {
-                            docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-                                docker.image(DOCKER_IMAGE).push()
-                            }
+                        withCredentials([file(credentialsId: 'gcp-service-account-key', variable: 'GCP_KEY_FILE')]) {
+                            sh 'gcloud auth activate-service-account --key-file=${GCP_KEY_FILE}'
+                            sh 'gcloud config set project ${GCP_PROJECT_ID}'
+                            sh 'gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev'
                         }
                     }
                 }
                 
-                stage('Trigger ArgoCD Sync') {
+                stage('Push Docker Image') {
                     steps {
-                        sh """
-                        curl -X POST \
-                        -H "Authorization: Bearer \$(cat /var/run/argocd/auth-token)" \
-                        -H "Content-Type: application/json" \
-                        -d '{
-                            "prune": true,
-                            "dryRun": false,
-                            "resources": null,
-                            "syncStrategy": {
-                                "hook": {
-                                    "force": false
-                                }
-                            },
-                            "retryStrategy": {
-                                "limit": 2,
-                                "backoff": {
-                                    "duration": "5s",
-                                    "factor": 2,
-                                    "maxDuration": "30s"
-                                }
-                            }
-                        }' \
-                        "https://argocd.lordemmag.com/api/v1/applications/python-demo/sync"
-                        """
+                        sh 'docker push ${DOCKER_IMAGE}'
+                    }
+                }
+                
+                stage('Deploy to GKE') {
+                    steps {
+                        sh 'gcloud container clusters get-credentials ${GKE_CLUSTER} --zone=${GCP_ZONE}'
+                        sh '''
+                            kubectl create namespace ${KUBE_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+                            kubectl set image deployment/python-app python-app=${DOCKER_IMAGE} -n ${KUBE_NAMESPACE}
+                            kubectl rollout status deployment/python-app -n ${KUBE_NAMESPACE} --timeout=300s
+                        '''
                     }
                 }
             }
@@ -136,11 +121,10 @@ pipeline {
             cleanWs()
         }
         success {
-            slackSend(color: "good", message: "✅ Build SUCCESSFUL: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
+            slackSend(color: "good", message: "✅ GCP Build SUCCESSFUL: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
         }
         failure {
-            slackSend(color: "danger", message: "❌ Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
+            slackSend(color: "danger", message: "❌ GCP Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}")
         }
     }
 }
-

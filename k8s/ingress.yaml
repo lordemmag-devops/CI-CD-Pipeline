@@ -1,22 +1,23 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ci-cd-pipeline-ingress
+  name: python-app-ingress
   namespace: python-ci-cd
   labels:
-    app: ci-cd-pipeline
+    app: python-app
     component: ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    ingressClassName: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "python-app-ip"
 spec:
   rules:
-  - host: python-ci-cd.lordemmag.com
+  - host: python-ci-cd.example.com
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: ci-cd-pipeline-service
+            name: python-app
             port:
               number: 80
