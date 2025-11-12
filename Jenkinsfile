@@ -114,6 +114,10 @@ pipeline {
                 ]) {
                     sh '''
                         gcloud auth activate-service-account --key-file="${GCP_KEY_FILE}"
+                        
+                        # Install gke-gcloud-auth-plugin
+                        gcloud components install gke-gcloud-auth-plugin --quiet
+                        
                         gcloud container clusters get-credentials ${CLUSTER_NAME} --zone=${CLUSTER_ZONE} --project=${GCP_PROJECT}
                         
                         # Create namespace if it doesn't exist
