@@ -1,26 +1,160 @@
 pipeline {
     agent any
     
+    environment {
+        PROJECT_ID = credentials('gcp-project-id')
+        GOOGLE_APPLICATION_CREDENTIALS = credentials('gcp-service-account-key')
+        IMAGE_NAME = 'python-app'
+        REGISTRY_URL = 'us-central1-docker.pkg.dev'
+        REPOSITORY = 'cicd-app'
+        CLUSTER_NAME = 'cicd-cluster'
+        CLUSTER_ZONE = 'us-central1'
+        NAMESPACE = 'python-ci-cd'
+    }
+    
     stages {
-        stage('Test Environment') {
+        stage('Checkout') {
             steps {
-                echo 'Testing Jenkins setup...'
-                sh 'python3 --version'
-                sh 'gcloud --version'
-                sh 'kubectl version --client'
+                echo 'Checking out source code...'
+                checkout scm
             }
         }
         
-        stage('Test Credentials') {
+        stage('Setup Python Environment') {
             steps {
-                withCredentials([
-                    string(credentialsId: 'gcp-project-id', variable: 'PROJECT'),
-                    file(credentialsId: 'gcp-service-account-key', variable: 'KEY_FILE')
-                ]) {
-                    echo "Project: ${PROJECT}"
-                    sh 'ls -la ${KEY_FILE}'
+                echo 'Setting up Python environment...'
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+        
+        stage('Run Tests') {
+            steps {
+                echo 'Running unit tests...'
+                sh '''
+                    . venv/bin/activate
+                    python -m pytest test_app.py -v --junitxml=test-results.xml
+                '''
+            }
+            post {
+                always {
+                    junit 'test-results.xml'
                 }
             }
+        }
+        
+        stage('Code Quality Analysis') {
+            parallel {
+                stage('Pylint') {
+                    steps {
+                        echo 'Running pylint...'
+                        sh '''
+                            . venv/bin/activate
+                            pylint app.py --output-format=text --reports=no --score=no || true
+                        '''
+                    }
+                }
+                stage('Security Scan') {
+                    steps {
+                        echo 'Running security scan...'
+                        sh '''
+                            . venv/bin/activate
+                            bandit -r . -f json -o bandit-report.json || true
+                        '''
+                    }
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image...'
+                script {
+                    def imageTag = "${env.BUILD_NUMBER}"
+                    def fullImageName = "${REGISTRY_URL}/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:${imageTag}"
+                    
+                    sh "docker build -t ${fullImageName} ."
+                    sh "docker tag ${fullImageName} ${REGISTRY_URL}/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:latest"
+                    
+                    env.FULL_IMAGE_NAME = fullImageName
+                    env.LATEST_IMAGE_NAME = "${REGISTRY_URL}/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:latest"
+                }
+            }
+        }
+        
+        stage('Push to Artifact Registry') {
+            steps {
+                echo 'Pushing image to Artifact Registry...'
+                sh '''
+                    gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+                    gcloud config set project ${PROJECT_ID}
+                    gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+                    
+                    docker push ${FULL_IMAGE_NAME}
+                    docker push ${LATEST_IMAGE_NAME}
+                '''
+            }
+        }
+        
+        stage('Deploy to GKE') {
+            steps {
+                echo 'Deploying to GKE...'
+                sh '''
+                    gcloud container clusters get-credentials ${CLUSTER_NAME} --zone=${CLUSTER_ZONE} --project=${PROJECT_ID}
+                    
+                    # Create namespace if it doesn't exist
+                    kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+                    
+                    # Update deployment image
+                    kubectl set image deployment/python-app python-app=${FULL_IMAGE_NAME} -n ${NAMESPACE}
+                    
+                    # Apply all k8s manifests
+                    kubectl apply -f k8s/ -n ${NAMESPACE}
+                    
+                    # Wait for rollout to complete
+                    kubectl rollout status deployment/python-app -n ${NAMESPACE} --timeout=300s
+                '''
+            }
+        }
+        
+        stage('Verify Deployment') {
+            steps {
+                echo 'Verifying deployment...'
+                sh '''
+                    # Check pod status
+                    kubectl get pods -n ${NAMESPACE} -l app=python-app
+                    
+                    # Check service status
+                    kubectl get svc -n ${NAMESPACE}
+                    
+                    # Wait for pods to be ready
+                    kubectl wait --for=condition=ready pod -l app=python-app -n ${NAMESPACE} --timeout=120s
+                '''
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo 'Cleaning up...'
+            sh '''
+                # Clean up Docker images
+                docker rmi ${FULL_IMAGE_NAME} || true
+                docker rmi ${LATEST_IMAGE_NAME} || true
+                
+                # Clean up Python virtual environment
+                rm -rf venv || true
+            '''
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Check logs for details.'
         }
     }
 }
