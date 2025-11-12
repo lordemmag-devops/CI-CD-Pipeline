@@ -75,12 +75,11 @@ pipeline {
                 echo 'Building Docker image...'
                 withCredentials([string(credentialsId: 'gcp-project-id', variable: 'GCP_PROJECT')]) {
                     script {
-                        def dockerPath = sh(script: 'which docker', returnStdout: true).trim()
                         def imageTag = "${env.BUILD_NUMBER}"
                         def fullImageName = "${REGISTRY_URL}/${GCP_PROJECT}/${REPOSITORY}/${IMAGE_NAME}:${imageTag}"
                         
-                        sh "${dockerPath} build -t ${fullImageName} ."
-                        sh "${dockerPath} tag ${fullImageName} ${REGISTRY_URL}/${GCP_PROJECT}/${REPOSITORY}/${IMAGE_NAME}:latest"
+                        sh "docker build -t ${fullImageName} ."
+                        sh "docker tag ${fullImageName} ${REGISTRY_URL}/${GCP_PROJECT}/${REPOSITORY}/${IMAGE_NAME}:latest"
                         
                         env.FULL_IMAGE_NAME = fullImageName
                         env.LATEST_IMAGE_NAME = "${REGISTRY_URL}/${GCP_PROJECT}/${REPOSITORY}/${IMAGE_NAME}:latest"
@@ -94,13 +93,12 @@ pipeline {
                 echo 'Pushing image to Artifact Registry...'
                 withCredentials([string(credentialsId: 'gcp-project-id', variable: 'GCP_PROJECT')]) {
                     sh '''
-                        DOCKER_PATH=$(which docker)
                         gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
                         gcloud config set project ${GCP_PROJECT}
                         gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
                         
-                        ${DOCKER_PATH} push ${FULL_IMAGE_NAME}
-                        ${DOCKER_PATH} push ${LATEST_IMAGE_NAME}
+                        docker push ${FULL_IMAGE_NAME}
+                        docker push ${LATEST_IMAGE_NAME}
                     '''
                 }
             }
@@ -151,9 +149,8 @@ pipeline {
             echo 'Cleaning up...'
             sh '''
                 # Clean up Docker images
-                DOCKER_PATH=$(which docker)
-                ${DOCKER_PATH} rmi ${FULL_IMAGE_NAME} || true
-                ${DOCKER_PATH} rmi ${LATEST_IMAGE_NAME} || true
+                docker rmi ${FULL_IMAGE_NAME} || true
+                docker rmi ${LATEST_IMAGE_NAME} || true
                 
                 # Clean up Python virtual environment
                 rm -rf venv || true

@@ -79,6 +79,31 @@ sudo mv kubectl /usr/local/bin/
 kubectl version --client
 ```
 
+### D. Install Docker (Required)
+```bash
+# Install Docker Desktop for Mac
+brew install --cask docker
+
+# Start Docker Desktop
+open /Applications/Docker.app
+
+# Add Docker to PATH for Jenkins
+echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bash_profile
+source ~/.bash_profile
+
+# Verify installation
+docker --version
+```
+
+### E. Configure Jenkins PATH
+1. **Manage Jenkins** → **System**
+2. Scroll to **Global properties**
+3. Check **Environment variables**
+4. Click **Add**
+5. **Name**: `PATH`
+6. **Value**: `/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`
+7. Click **Save**
+
 ## Step 5: Add GCP Credentials
 
 ### A. Get Service Account Key

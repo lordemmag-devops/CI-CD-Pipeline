@@ -2,4 +2,5 @@ flask==3.0.0
 pytest==7.4.0
 pylint==3.0.0
 bandit==1.7.5
+pbr==6.0.0
 gunicorn==21.2.0
