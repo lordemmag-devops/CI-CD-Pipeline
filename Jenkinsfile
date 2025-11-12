@@ -73,15 +73,18 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image...'
-                script {
-                    def imageTag = "${env.BUILD_NUMBER}"
-                    def fullImageName = "${REGISTRY_URL}/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:${imageTag}"
-                    
-                    sh "docker build -t ${fullImageName} ."
-                    sh "docker tag ${fullImageName} ${REGISTRY_URL}/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:latest"
-                    
-                    env.FULL_IMAGE_NAME = fullImageName
-                    env.LATEST_IMAGE_NAME = "${REGISTRY_URL}/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:latest"
+                withCredentials([string(credentialsId: 'gcp-project-id', variable: 'GCP_PROJECT')]) {
+                    script {
+                        def dockerPath = sh(script: 'which docker', returnStdout: true).trim()
+                        def imageTag = "${env.BUILD_NUMBER}"
+                        def fullImageName = "${REGISTRY_URL}/${GCP_PROJECT}/${REPOSITORY}/${IMAGE_NAME}:${imageTag}"
+                        
+                        sh "${dockerPath} build -t ${fullImageName} ."
+                        sh "${dockerPath} tag ${fullImageName} ${REGISTRY_URL}/${GCP_PROJECT}/${REPOSITORY}/${IMAGE_NAME}:latest"
+                        
+                        env.FULL_IMAGE_NAME = fullImageName
+                        env.LATEST_IMAGE_NAME = "${REGISTRY_URL}/${GCP_PROJECT}/${REPOSITORY}/${IMAGE_NAME}:latest"
+                    }
                 }
             }
         }
@@ -89,35 +92,40 @@ pipeline {
         stage('Push to Artifact Registry') {
             steps {
                 echo 'Pushing image to Artifact Registry...'
-                sh '''
-                    gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
-                    gcloud config set project ${PROJECT_ID}
-                    gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
-                    
-                    docker push ${FULL_IMAGE_NAME}
-                    docker push ${LATEST_IMAGE_NAME}
-                '''
+                withCredentials([string(credentialsId: 'gcp-project-id', variable: 'GCP_PROJECT')]) {
+                    sh '''
+                        DOCKER_PATH=$(which docker)
+                        gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+                        gcloud config set project ${GCP_PROJECT}
+                        gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+                        
+                        ${DOCKER_PATH} push ${FULL_IMAGE_NAME}
+                        ${DOCKER_PATH} push ${LATEST_IMAGE_NAME}
+                    '''
+                }
             }
         }
         
         stage('Deploy to GKE') {
             steps {
                 echo 'Deploying to GKE...'
-                sh '''
-                    gcloud container clusters get-credentials ${CLUSTER_NAME} --zone=${CLUSTER_ZONE} --project=${PROJECT_ID}
-                    
-                    # Create namespace if it doesn't exist
-                    kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
-                    
-                    # Update deployment image
-                    kubectl set image deployment/python-app python-app=${FULL_IMAGE_NAME} -n ${NAMESPACE}
-                    
-                    # Apply all k8s manifests
-                    kubectl apply -f k8s/ -n ${NAMESPACE}
-                    
-                    # Wait for rollout to complete
-                    kubectl rollout status deployment/python-app -n ${NAMESPACE} --timeout=300s
-                '''
+                withCredentials([string(credentialsId: 'gcp-project-id', variable: 'GCP_PROJECT')]) {
+                    sh '''
+                        gcloud container clusters get-credentials ${CLUSTER_NAME} --zone=${CLUSTER_ZONE} --project=${GCP_PROJECT}
+                        
+                        # Create namespace if it doesn't exist
+                        kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+                        
+                        # Update deployment image
+                        kubectl set image deployment/python-app python-app=${FULL_IMAGE_NAME} -n ${NAMESPACE}
+                        
+                        # Apply all k8s manifests
+                        kubectl apply -f k8s/ -n ${NAMESPACE}
+                        
+                        # Wait for rollout to complete
+                        kubectl rollout status deployment/python-app -n ${NAMESPACE} --timeout=300s
+                    '''
+                }
             }
         }
         
@@ -143,8 +151,9 @@ pipeline {
             echo 'Cleaning up...'
             sh '''
                 # Clean up Docker images
-                docker rmi ${FULL_IMAGE_NAME} || true
-                docker rmi ${LATEST_IMAGE_NAME} || true
+                DOCKER_PATH=$(which docker)
+                ${DOCKER_PATH} rmi ${FULL_IMAGE_NAME} || true
+                ${DOCKER_PATH} rmi ${LATEST_IMAGE_NAME} || true
                 
                 # Clean up Python virtual environment
                 rm -rf venv || true
