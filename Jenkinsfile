@@ -2,31 +2,25 @@ pipeline {
     agent any
     
     stages {
-        stage('Hello World') {
+        stage('Test Environment') {
             steps {
-                echo 'Hello from Jenkins Pipeline!'
-                echo "Build Number: ${BUILD_NUMBER}"
-                echo "Job Name: ${JOB_NAME}"
+                echo 'Testing Jenkins setup...'
+                sh 'python3 --version'
+                sh 'gcloud --version'
+                sh 'kubectl version --client'
             }
         }
         
-        stage('Check Tools') {
+        stage('Test Credentials') {
             steps {
-                echo 'Checking available tools...'
-                sh 'pwd'
-                sh 'ls -la'
-                sh 'python3 --version || echo "Python3 not found"'
-                sh 'which python3 || echo "Python3 path not found"'
+                withCredentials([
+                    string(credentialsId: 'gcp-project-id', variable: 'PROJECT'),
+                    file(credentialsId: 'gcp-service-account-key', variable: 'KEY_FILE')
+                ]) {
+                    echo "Project: ${PROJECT}"
+                    sh 'ls -la ${KEY_FILE}'
+                }
             }
-        }
-    }
-    
-    post {
-        success {
-            echo "✅ SUCCESS: Jenkins is working!"
-        }
-        failure {
-            echo "❌ FAILED: Check the logs"
         }
     }
 }
