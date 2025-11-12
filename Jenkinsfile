@@ -2,8 +2,6 @@ pipeline {
     agent any
     
     environment {
-        PROJECT_ID = credentials('gcp-project-id')
-        GOOGLE_APPLICATION_CREDENTIALS = credentials('gcp-service-account-key')
         IMAGE_NAME = 'python-app'
         REGISTRY_URL = 'us-central1-docker.pkg.dev'
         REPOSITORY = 'cicd-app'
@@ -91,9 +89,12 @@ pipeline {
         stage('Push to Artifact Registry') {
             steps {
                 echo 'Pushing image to Artifact Registry...'
-                withCredentials([string(credentialsId: 'gcp-project-id', variable: 'GCP_PROJECT')]) {
+                withCredentials([
+                    string(credentialsId: 'gcp-project-id', variable: 'GCP_PROJECT'),
+                    file(credentialsId: 'gcp-service-account-key', variable: 'GCP_KEY_FILE')
+                ]) {
                     sh '''
-                        gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+                        gcloud auth activate-service-account --key-file="${GCP_KEY_FILE}"
                         gcloud config set project ${GCP_PROJECT}
                         gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
                         
@@ -107,8 +108,12 @@ pipeline {
         stage('Deploy to GKE') {
             steps {
                 echo 'Deploying to GKE...'
-                withCredentials([string(credentialsId: 'gcp-project-id', variable: 'GCP_PROJECT')]) {
+                withCredentials([
+                    string(credentialsId: 'gcp-project-id', variable: 'GCP_PROJECT'),
+                    file(credentialsId: 'gcp-service-account-key', variable: 'GCP_KEY_FILE')
+                ]) {
                     sh '''
+                        gcloud auth activate-service-account --key-file="${GCP_KEY_FILE}"
                         gcloud container clusters get-credentials ${CLUSTER_NAME} --zone=${CLUSTER_ZONE} --project=${GCP_PROJECT}
                         
                         # Create namespace if it doesn't exist
