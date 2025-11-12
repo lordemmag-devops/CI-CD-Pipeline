@@ -1,0 +1,13 @@
+// Simple email notification example (replace emailext blocks with this):
+
+success {
+    mail to: 'your-email@gmail.com',
+         subject: "✅ Build Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+         body: "Build completed successfully!\n\nJob: ${env.JOB_NAME}\nBuild: ${env.BUILD_NUMBER}\nURL: ${env.BUILD_URL}"
+}
+
+failure {
+    mail to: 'your-email@gmail.com',
+         subject: "❌ Build Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+         body: "Build failed!\n\nJob: ${env.JOB_NAME}\nBuild: ${env.BUILD_NUMBER}\nURL: ${env.BUILD_URL}\nConsole: ${env.BUILD_URL}console"
+}

@@ -167,9 +167,54 @@ pipeline {
         }
         success {
             echo 'Pipeline completed successfully!'
+            emailext (
+                subject: "✅ Build Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: """
+                    <h2>Build Successful! 🎉</h2>
+                    <p><strong>Job:</strong> ${env.JOB_NAME}</p>
+                    <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
+                    <p><strong>Build URL:</strong> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                    <p><strong>Duration:</strong> ${currentBuild.durationString}</p>
+                    <p><strong>Git Commit:</strong> ${env.GIT_COMMIT}</p>
+                    <hr>
+                    <p>Your Python CI/CD pipeline completed successfully and deployed to GKE!</p>
+                """,
+                mimeType: 'text/html',
+                to: 'your-email@gmail.com'
+            )
         }
         failure {
             echo 'Pipeline failed. Check logs for details.'
+            emailext (
+                subject: "❌ Build Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: """
+                    <h2>Build Failed! ❌</h2>
+                    <p><strong>Job:</strong> ${env.JOB_NAME}</p>
+                    <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
+                    <p><strong>Build URL:</strong> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                    <p><strong>Console Output:</strong> <a href="${env.BUILD_URL}console">${env.BUILD_URL}console</a></p>
+                    <p><strong>Duration:</strong> ${currentBuild.durationString}</p>
+                    <p><strong>Git Commit:</strong> ${env.GIT_COMMIT}</p>
+                    <hr>
+                    <p>Please check the console output for error details.</p>
+                """,
+                mimeType: 'text/html',
+                to: 'your-email@gmail.com'
+            )
+        }
+        unstable {
+            emailext (
+                subject: "⚠️ Build Unstable: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: """
+                    <h2>Build Unstable ⚠️</h2>
+                    <p><strong>Job:</strong> ${env.JOB_NAME}</p>
+                    <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
+                    <p><strong>Build URL:</strong> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                    <p>Some tests may have failed or there are warnings.</p>
+                """,
+                mimeType: 'text/html',
+                to: 'your-email@gmail.com'
+            )
         }
     }
 }
