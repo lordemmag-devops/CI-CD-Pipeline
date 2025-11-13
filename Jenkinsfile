@@ -6,7 +6,7 @@ pipeline {
         REGISTRY_URL = 'us-central1-docker.pkg.dev'
         REPOSITORY = 'cicd-app'
         CLUSTER_NAME = 'cicd-cluster'
-        CLUSTER_ZONE = 'us-central1'
+        CLUSTER_REGION = 'us-central1'
         NAMESPACE = 'python-ci-cd'
     }
     
@@ -118,7 +118,7 @@ pipeline {
                         # Install gke-gcloud-auth-plugin
                         gcloud components install gke-gcloud-auth-plugin --quiet
                         
-                        gcloud container clusters get-credentials ${CLUSTER_NAME} --zone=${CLUSTER_ZONE} --project=${GCP_PROJECT}
+                        gcloud container clusters get-credentials ${CLUSTER_NAME} --region=${CLUSTER_REGION} --project=${GCP_PROJECT}
                         
                         # Create namespace if it doesn't exist
                         kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
@@ -146,8 +146,11 @@ pipeline {
                     # Check service status
                     kubectl get svc -n ${NAMESPACE}
                     
-                    # Wait for pods to be ready
-                    kubectl wait --for=condition=ready pod -l app=python-app -n ${NAMESPACE} --timeout=120s
+                    # Wait for deployment to be ready
+                    kubectl wait --for=condition=available deployment/python-app -n ${NAMESPACE} --timeout=300s
+                    
+                    # Get pod status after deployment
+                    kubectl get pods -n ${NAMESPACE} -l app=python-app
                 '''
             }
         }
@@ -167,54 +170,38 @@ pipeline {
         }
         success {
             echo 'Pipeline completed successfully!'
-            emailext (
-                subject: "✅ Build Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
-                body: """
-                    <h2>Build Successful! 🎉</h2>
-                    <p><strong>Job:</strong> ${env.JOB_NAME}</p>
-                    <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
-                    <p><strong>Build URL:</strong> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
-                    <p><strong>Duration:</strong> ${currentBuild.durationString}</p>
-                    <p><strong>Git Commit:</strong> ${env.GIT_COMMIT}</p>
-                    <hr>
-                    <p>Your Python CI/CD pipeline completed successfully and deployed to GKE!</p>
-                """,
-                mimeType: 'text/html',
-                to: 'your-email@gmail.com'
-            )
+            script {
+                try {
+                    mail to: 'your-email@gmail.com',
+                         subject: "✅ Build Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                         body: "Build completed successfully!\n\nJob: ${env.JOB_NAME}\nBuild: ${env.BUILD_NUMBER}\nURL: ${env.BUILD_URL}"
+                } catch (Exception e) {
+                    echo "Email notification failed: ${e.getMessage()}"
+                }
+            }
         }
         failure {
             echo 'Pipeline failed. Check logs for details.'
-            emailext (
-                subject: "❌ Build Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
-                body: """
-                    <h2>Build Failed! ❌</h2>
-                    <p><strong>Job:</strong> ${env.JOB_NAME}</p>
-                    <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
-                    <p><strong>Build URL:</strong> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
-                    <p><strong>Console Output:</strong> <a href="${env.BUILD_URL}console">${env.BUILD_URL}console</a></p>
-                    <p><strong>Duration:</strong> ${currentBuild.durationString}</p>
-                    <p><strong>Git Commit:</strong> ${env.GIT_COMMIT}</p>
-                    <hr>
-                    <p>Please check the console output for error details.</p>
-                """,
-                mimeType: 'text/html',
-                to: 'your-email@gmail.com'
-            )
+            script {
+                try {
+                    mail to: 'your-email@gmail.com',
+                         subject: "❌ Build Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                         body: "Build failed!\n\nJob: ${env.JOB_NAME}\nBuild: ${env.BUILD_NUMBER}\nURL: ${env.BUILD_URL}\nConsole: ${env.BUILD_URL}console"
+                } catch (Exception e) {
+                    echo "Email notification failed: ${e.getMessage()}"
+                }
+            }
         }
         unstable {
-            emailext (
-                subject: "⚠️ Build Unstable: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
-                body: """
-                    <h2>Build Unstable ⚠️</h2>
-                    <p><strong>Job:</strong> ${env.JOB_NAME}</p>
-                    <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
-                    <p><strong>Build URL:</strong> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
-                    <p>Some tests may have failed or there are warnings.</p>
-                """,
-                mimeType: 'text/html',
-                to: 'your-email@gmail.com'
-            )
+            script {
+                try {
+                    mail to: 'your-email@gmail.com',
+                         subject: "⚠️ Build Unstable: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                         body: "Build unstable!\n\nJob: ${env.JOB_NAME}\nBuild: ${env.BUILD_NUMBER}\nURL: ${env.BUILD_URL}"
+                } catch (Exception e) {
+                    echo "Email notification failed: ${e.getMessage()}"
+                }
+            }
         }
     }
 }

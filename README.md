@@ -147,12 +147,35 @@ terraform destroy -auto-approve
 gcloud projects delete your-unique-project-id
 ```
 
+## Jenkins Setup
+
+### Required Jenkins Credentials
+1. **gcp-project-id** (Secret text): Your GCP project ID
+2. **gcp-service-account-key** (Secret file): Service account JSON key
+3. **docker-hub-credentials** (Username/password): For Git checkout
+
+### Jenkins Configuration
+```bash
+# Install required plugins
+- Docker Pipeline
+- Google Kubernetes Engine
+- Email Extension
+- JUnit
+```
+
 ## Troubleshooting
 
+### GCP Issues
 - **GKE cluster creation fails**: Ensure billing is enabled
 - **Docker push fails**: Run `gcloud auth configure-docker us-central1-docker.pkg.dev`
 - **Pod fails to start**: Check image name matches your project ID
 - **Service unreachable**: Verify namespace and service configuration
+
+### Jenkins Issues
+- **Pipeline timeout**: Increase kubectl wait timeout in Jenkinsfile
+- **Email notification fails**: Configure SMTP in Jenkins system settings
+- **Credential errors**: Verify Jenkins credentials match GCP service account
+- **Pod readiness timeout**: Check pod logs with `kubectl logs -n python-ci-cd -l app=python-app`
 
 ## Cost Optimization
 
