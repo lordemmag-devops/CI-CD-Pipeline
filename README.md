@@ -103,6 +103,18 @@ curl http://localhost:8080/
 curl http://localhost:8080/health
 ```
 
+### 8. Access from Anywhere (Optional)
+```bash
+# Create external LoadBalancer service
+kubectl patch service python-app -n python-ci-cd -p '{"spec":{"type":"LoadBalancer"}}'
+
+# Get external IP (takes 2-3 minutes)
+kubectl get service python-app -n python-ci-cd --watch
+
+# Access via external IP
+curl http://EXTERNAL_IP/
+```
+
 ## Local Development
 
 ```bash
@@ -122,6 +134,7 @@ python app.py
 
 ## Testing
 
+### Local Testing
 ```bash
 # Run all tests
 pytest -v
@@ -131,6 +144,26 @@ pylint app.py
 
 # Security scan
 bandit -r . -f json
+```
+
+### Deployment Testing
+```bash
+# Run deployment tests
+./test-deployment.sh
+
+# Manual testing
+kubectl get pods -n python-ci-cd
+kubectl logs -n python-ci-cd -l app=python-app
+kubectl describe service python-app -n python-ci-cd
+```
+
+### Load Testing
+```bash
+# Install hey (load testing tool)
+go install github.com/rakyll/hey@latest
+
+# Run load test
+hey -n 100 -c 10 http://EXTERNAL_IP/
 ```
 
 ## Cleanup
